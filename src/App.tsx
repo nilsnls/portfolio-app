@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheckS
 // @ts-ignore
 if (typeof window !== 'undefined' && window.crypto && !window.crypto.randomUUID) {
   // @ts-ignore
@@ -10,7 +10,7 @@ if (typeof window !== 'undefined' && window.crypto && !window.crypto.randomUUID)
     });
   };
 }
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   AreaChart, Area, BarChart, Bar,
   PieChart, Pie, Cell,
@@ -885,7 +885,13 @@ const NAV = {
 
 export default function App() {
   const [tab, setTab] = useState("home");
-  const [assets, setAssets] = useState(INITIAL_ASSETS);
+const [assets, setAssets] = useState(() => {
+  const saved = localStorage.getItem("portfolio_assets");
+  return saved ? JSON.parse(saved) : INITIAL_ASSETS;
+});
+useEffect(() => {
+  localStorage.setItem("portfolio_assets", JSON.stringify(assets));
+}, [assets]);
   const [showAdd, setShowAdd] = useState(false);
   const [editAsset, setEditAsset] = useState(null);
 
