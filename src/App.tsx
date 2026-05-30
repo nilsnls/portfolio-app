@@ -453,22 +453,36 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
 
 export default function App() {
   const [tab, setTab] = useState("home");
-  
-  const [assets, setAssets] = useState(() => {
-    const saved = localStorage.getItem("portfolio_assets");
-    return saved ? JSON.parse(saved) : INITIAL_ASSETS;
-  });
+  const [assets, setAssets] = useState(INITIAL_ASSETS);
+  const [isLoaded, setIsLoaded] = useState(false); // Waterdichte check voor laden
 
   const [showAdd, setShowAdd] = useState(false);
   const [editAsset, setEditAsset] = useState(null);
 
-  // 1. Jouw LocalStorage useEffect (data opslaan)
+  // STAP A: Eerst data ophalen bij opstarten
   useEffect(() => {
-    localStorage.setItem("portfolio_assets", JSON.stringify(assets));
-  }, [assets]);
+    try {
+      const saved = localStorage.getItem("portfolio_assets");
+      if (saved) {
+        setAssets(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error("Fout bij laden van localStorage", e);
+    }
+    setIsLoaded(true); // Pas nu mag er worden opgeslagen!
+  }, []);
 
-  // 2. De Realtime CoinGecko API Engine (Met slimme check tegen loops)
+  // STAP B: Alleen opslaan ALS het laden klaar is en de assets veranderen
   useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("portfolio_assets", JSON.stringify(assets));
+    }
+  }, [assets, isLoaded]);
+
+  // STAP C: Realtime CoinGecko API Engine (Met stabiele intervallen)
+  useEffect(() => {
+    if (!isLoaded) return;
+
     async function fetchLivePrices() {
       const cryptoIds = assets
         .filter(a => a.coingeckoId)
@@ -499,17 +513,15 @@ export default function App() {
             return asset;
           });
         });
-        console.log("Realtime crypto koersen succesvol bijgewerkt:", data);
       } catch (error) {
         console.error("CoinGecko API fout:", error);
       }
     }
 
     fetchLivePrices();
-
     const interval = setInterval(fetchLivePrices, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isLoaded, assets.length]); // Start API als laden klaar is of lengte verandert
 
   function handleAdd(asset) {
     setAssets(prev => [...prev, asset]);
