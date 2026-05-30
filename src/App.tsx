@@ -20,16 +20,18 @@ import {
 // ─── INITIAL DATA ─────────────────────────────────────────────────────────────
 
 const INITIAL_ASSETS = [
-  { id: 1,  name: "Apple Inc.",     ticker: "AAPL", type: "Aandeel", sector: "Technologie", country: "VS", currency: "USD", qty: 15,   avgBuy: 148.50,  current: 189.30,  flag: "🇺🇸" },
-  { id: 2,  name: "NVIDIA Corp.",   ticker: "NVDA", type: "Aandeel", sector: "Technologie", country: "VS", currency: "USD", qty: 8,    avgBuy: 420.00,  current: 875.50,  flag: "🇺🇸" },
-  { id: 3,  name: "Bitcoin",        ticker: "BTC",  type: "Crypto",  sector: "Crypto",      country: "—",  currency: "USD", qty: 0.45, avgBuy: 28500,   current: 67200,   flag: "₿"   },
-  { id: 4,  name: "Ethereum",       ticker: "ETH",  type: "Crypto",  sector: "Crypto",      country: "—",  currency: "USD", qty: 3.2,  avgBuy: 1800,    current: 3450,    flag: "Ξ"   },
-  { id: 5,  name: "VWCE ETF",       ticker: "VWCE", type: "ETF",     sector: "Wereldwijd",  country: "EU", currency: "EUR", qty: 40,   avgBuy: 95.20,   current: 118.40,  flag: "🇪🇺" },
-  { id: 6,  name: "Microsoft",      ticker: "MSFT", type: "Aandeel", sector: "Technologie", country: "VS", currency: "USD", qty: 10,   avgBuy: 285.00,  current: 415.20,  flag: "🇺🇸" },
-  { id: 7,  name: "ASML Holding",   ticker: "ASML", type: "Aandeel", sector: "Technologie", country: "NL", currency: "EUR", qty: 5,    avgBuy: 620.00,  current: 780.00,  flag: "🇳🇱" },
-  { id: 8,  name: "Solana",         ticker: "SOL",  type: "Crypto",  sector: "Crypto",      country: "—",  currency: "USD", qty: 25,   avgBuy: 95,      current: 165,     flag: "◎"   },
-  { id: 9,  name: "Amazon.com",     ticker: "AMZN", type: "Aandeel", sector: "E-commerce",  country: "VS", currency: "USD", qty: 12,   avgBuy: 132.00,  current: 185.50,  flag: "🇺🇸" },
-  { id: 10, name: "Cash (EUR)",     ticker: "EUR",  type: "Cash",    sector: "Cash",        country: "EU", currency: "EUR", qty: 1,    avgBuy: 4200,    current: 4200,    flag: "💶"  },
+const INITIAL_ASSETS = [
+  { id: 1,  name: "Apple Inc.",      ticker: "AAPL", type: "Aandeel", sector: "Technologie", country: "VS", currency: "USD", qty: 15,   avgBuy: 148.50,  current: 189.30,  flag: "🇺🇸" },
+  { id: 2,  name: "NVIDIA Corp.",    ticker: "NVDA", type: "Aandeel", sector: "Technologie", country: "VS", currency: "USD", qty: 8,    avgBuy: 420.00,  current: 875.50,  flag: "🇺🇸" },
+  // VOEG coingeckoId TOE AAN DE CRYPTO'S:
+  { id: 3,  name: "Bitcoin",         ticker: "BTC",  type: "Crypto",  sector: "Crypto",      country: "—",  currency: "USD", qty: 0.45, avgBuy: 28500,   current: 67200,   flag: "₿", coingeckoId: "bitcoin" },
+  { id: 4,  name: "Ethereum",        ticker: "ETH",  type: "Crypto",  sector: "Crypto",      country: "—",  currency: "USD", qty: 3.2,  avgBuy: 1800,    current: 3450,    flag: "Ξ", coingeckoId: "ethereum" },
+  { id: 5,  name: "VWCE ETF",        ticker: "VWCE", type: "ETF",     sector: "Wereltwijd",  country: "EU", currency: "EUR", qty: 40,   avgBuy: 95.20,   current: 118.40,  flag: "🇪🇺" },
+  { id: 6,  name: "Microsoft",       ticker: "MSFT", type: "Aandeel", sector: "Technologie", country: "VS", currency: "USD", qty: 10,   avgBuy: 285.00,  current: 415.20,  flag: "🇺🇸" },
+  { id: 7,  name: "ASML Holding",    ticker: "ASML", type: "Aandeel", sector: "Technologie", country: "NL", currency: "EUR", qty: 5,    avgBuy: 620.00,  current: 780.00,  flag: "🇳🇱" },
+  { id: 8,  name: "Solana",          ticker: "SOL",  type: "Crypto",  sector: "Crypto",      country: "—",  currency: "USD", qty: 25,   avgBuy: 95,      current: 165,     flag: "◎", coingeckoId: "solana" },
+  { id: 9,  name: "Amazon.com",      ticker: "AMZN", type: "Aandeel", sector: "E-commerce",  country: "VS", currency: "USD", qty: 12,   avgBuy: 132.00,  current: 185.50,  flag: "🇺🇸" },
+  { id: 10, name: "Cash (EUR)",      ticker: "EUR",  type: "Cash",    sector: "Cash",        country: "EU", currency: "EUR", qty: 1,    avgBuy: 4200,    current: 4200,    flag: "💶"  },
 ];
 
 const NEWS = [
@@ -257,18 +259,25 @@ function AddAssetModal({ onClose, onAdd }) {
   });
   const set = (k, v) => setForm(f => ({...f, [k]:v}));
 
-  function handleAdd() {
-    if (!form.name || !form.ticker || !form.qty || !form.avgBuy || !form.current) return;
-    onAdd({
-      ...form,
-      id: Date.now(),
-      qty: parseFloat(form.qty),
-      avgBuy: parseFloat(form.avgBuy),
-      current: parseFloat(form.current),
-      flag: TYPE_FLAGS[form.type] || "📈",
-    });
-    onClose();
-  }
+function handleAdd() {
+  if (!form.name || !form.ticker || !form.qty || !form.avgBuy || !form.current) return;
+
+  // Maakt automatisch van "Cardano" -> "cardano" en van "Binance Coin" -> "binance-coin"
+  const generatedGeckoId = form.type === "Crypto"
+    ? form.name.toLowerCase().trim().replace(/\s+/g, '-')
+    : undefined;
+
+  onAdd({
+    ...form,
+    id: Date.now(),
+    qty: parseFloat(form.qty),
+    avgBuy: parseFloat(form.avgBuy),
+    current: parseFloat(form.current),
+    flag: TYPE_FLAGS[form.type] || "📈",
+    coingeckoId: generatedGeckoId
+  });
+  onClose();
+}
 
   return (
     <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
@@ -889,9 +898,53 @@ const [assets, setAssets] = useState(() => {
   const saved = localStorage.getItem("portfolio_assets");
   return saved ? JSON.parse(saved) : INITIAL_ASSETS;
 });
-useEffect(() => {
-  localStorage.setItem("portfolio_assets", JSON.stringify(assets));
-}, [assets]);
+// 1. Jouw bestaande LocalStorage useEffect (behouden zodat data bewaard blijft!)
+  useEffect(() => {
+    localStorage.setItem("portfolio_assets", JSON.stringify(assets));
+  }, [assets]);
+
+  // 2. De NIEUWE Realtime CoinGecko API Engine
+  useEffect(() => {
+    async function fetchLivePrices() {
+      // Haal alle actieve cryptoId's op uit je huidige portfolio
+      const cryptoIds = assets
+        .filter(a => a.coingeckoId)
+        .map(a => a.coingeckoId)
+        .join(",");
+
+      if (!cryptoIds) return;
+
+      try {
+        const url = `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds}&vs_currencies=eur`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        // Update de koers in de applicatie zonder de rest van de data te overschrijven
+        setAssets(prevAssets =>
+          prevAssets.map(asset => {
+            if (asset.coingeckoId && data[asset.coingeckoId]) {
+              return {
+                ...asset,
+                current: data[asset.coingeckoId].eur
+              };
+            }
+            return asset;
+          })
+        );
+        console.log("Realtime crypto koersen succesvol bijgewerkt:", data);
+      } catch (error) {
+        console.error("CoinGecko API fout:", error);
+      }
+    }
+
+    fetchLivePrices();
+
+    // Ververs elke 60 seconden automatisch op de achtergrond
+    const interval = setInterval(fetchLivePrices, 60000);
+    return () => clearInterval(interval);
+  }, [assets.length]); // Start opnieuw op als er een munt wordt toegevoegd of verwijderd
+
+  // 3. Jouw bestaande State variabelen (State namen aangepast naar jouw variabelen!)
   const [showAdd, setShowAdd] = useState(false);
   const [editAsset, setEditAsset] = useState(null);
 
