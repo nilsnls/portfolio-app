@@ -874,26 +874,36 @@ const NAV = {
 export default function App() {
   const [tab, setTab] = useState("home");
   
-  // Laad data uit localStorage of val terug op INITIAL_ASSETS
+  // 1. Initialiseer de state direct met localStorage ALS het bestaat, anders de beginlijst
   const [assets, setAssets] = useState(() => {
     const saved = localStorage.getItem("watch_me_invest_assets");
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       } catch (e) {
         console.error("Fout bij het laden van localStorage data", e);
       }
     }
     return INITIAL_ASSETS;
   });
-  
+
+  // Een extra hulpmiddel om te voorkomen dat de eerste 'load' de boel overschrijft
+  const [isInitialized, setIsInitialized] = useState(false);
+
   const [showAdd, setShowAdd] = useState(false);
   const [editAsset, setEditAsset] = useState(null);
 
-  // Sla assets op in localStorage zodra de state verandert
+  // 2. Sla de assets pas op ALREEDS de app volledig is opgestart en er écht iets verandert
   useEffect(() => {
-    localStorage.setItem("watch_me_invest_assets", JSON.stringify(assets));
-  }, [assets]);
+    if (isInitialized) {
+      localStorage.setItem("watch_me_invest_assets", JSON.stringify(assets));
+    } else {
+      setIsInitialized(true);
+    }
+  }, [assets, isInitialized]);
 
   function handleAdd(asset) {
     setAssets(prev => [...prev, asset]);
