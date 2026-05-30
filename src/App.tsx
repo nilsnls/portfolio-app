@@ -8,7 +8,7 @@ import {
 // ─── INITIAL DATA ─────────────────────────────────────────────────────────────
 
 const INITIAL_ASSETS = [
-  { id: 1,  name: "Apple Inc.",     ticker: "AAPL", type: "Aandeel", sector: "Technologie", country: "VS", currency: "USD", qty: 15,   avgBuy: 148.50,  current: 189.30,  flag: "🇺🇸" },
+  { id: 1,  name: "Apple Inc.",     ticker: "AAPL", type: "Aandeel", sector: "Technologie", country: "VS", currency: "USD", qty: 10,   avgBuy: 148.50,  current: 189.30,  flag: "🇺🇸" },
   { id: 2,  name: "NVIDIA Corp.",   ticker: "NVDA", type: "Aandeel", sector: "Technologie", country: "VS", currency: "USD", qty: 8,    avgBuy: 420.00,  current: 875.50,  flag: "🇺🇸" },
   { id: 3,  name: "Bitcoin",        ticker: "BTC",  type: "Crypto",  sector: "Crypto",      country: "—",  currency: "USD", qty: 0.45, avgBuy: 28500,   current: 67200,   flag: "₿", coingeckoId: "bitcoin" },
   { id: 4,  name: "Ethereum",       ticker: "ETH",  type: "Crypto",  sector: "Crypto",      country: "—",  currency: "USD", qty: 3.2,  avgBuy: 1800,    current: 3450,    flag: "Ξ", coingeckoId: "ethereum" },
@@ -71,6 +71,18 @@ function enrich(assets) {
 
 function fmt(n) {
   return Number(n).toLocaleString("nl-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Veiligere check voor localStorage (voorkomt Vercel SSR crashes)
+function getSavedAssets() {
+  if (typeof window === "undefined") return INITIAL_ASSETS;
+  try {
+    const saved = localStorage.getItem("portfolio_assets");
+    return saved ? JSON.parse(saved) : INITIAL_ASSETS;
+  } catch (e) {
+    console.error("Fout bij uitlezen localStorage:", e);
+    return INITIAL_ASSETS;
+  }
 }
 
 function CustomTooltip({ active, payload }) {
@@ -453,36 +465,21 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
 
 export default function App() {
   const [tab, setTab] = useState("home");
-  const [assets, setAssets] = useState(INITIAL_ASSETS);
-  const [isLoaded, setIsLoaded] = useState(false); // Waterdichte check voor laden
+  
+  // HIER ZIT DE WATERDICHTE FIX: Direct de functie aanroepen in de state.
+  // Dit zorgt ervoor dat React StrictMode de data direct bij milliseconde 1 goed vastzet.
+  const [assets, setAssets] = useState(() => getSavedAssets());
 
   const [showAdd, setShowAdd] = useState(false);
   const [editAsset, setEditAsset] = useState(null);
 
-  // STAP A: Eerst data ophalen bij opstarten
+  // Synchroniseer wijzigingen direct met localStorage
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("portfolio_assets");
-      if (saved) {
-        setAssets(JSON.parse(saved));
-      }
-    } catch (e) {
-      console.error("Fout bij laden van localStorage", e);
-    }
-    setIsLoaded(true); // Pas nu mag er worden opgeslagen!
-  }, []);
+    localStorage.setItem("portfolio_assets", JSON.stringify(assets));
+  }, [assets]);
 
-  // STAP B: Alleen opslaan ALS het laden klaar is en de assets veranderen
+  // Realtime CoinGecko API Engine met interval
   useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem("portfolio_assets", JSON.stringify(assets));
-    }
-  }, [assets, isLoaded]);
-
-  // STAP C: Realtime CoinGecko API Engine (Met stabiele intervallen)
-  useEffect(() => {
-    if (!isLoaded) return;
-
     async function fetchLivePrices() {
       const cryptoIds = assets
         .filter(a => a.coingeckoId)
@@ -521,7 +518,7 @@ export default function App() {
     fetchLivePrices();
     const interval = setInterval(fetchLivePrices, 60000);
     return () => clearInterval(interval);
-  }, [isLoaded, assets.length]); // Start API als laden klaar is of lengte verandert
+  }, [assets.length]); 
 
   function handleAdd(asset) {
     setAssets(prev => [...prev, asset]);
